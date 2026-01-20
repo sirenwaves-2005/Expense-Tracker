@@ -1,2 +1,2 @@
-# AutoML-Based-Decision-Support-Platform-for-Real-Estate-Analytics
-Software Engineering Lab 
+# Expense Tracker Project
+I will be developing an Expense Tracker web application  
