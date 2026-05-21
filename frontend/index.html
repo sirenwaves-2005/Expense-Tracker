@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trackr — Home</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
+    rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0f0f11;
+      --surface: #1a1a1f;
+      --surface2: #222228;
+      --border: #2e2e38;
+      --text: #f0eff5;
+      --muted: #7c7c90;
+      --accent: #c8fb5e;
+      --accent2: #7c6dfa;
+      --danger: #ff5e5e;
+      --c1: #c8fb5e;
+      --c2: #7c6dfa;
+      --c3: #ff7eb3;
+      --c4: #38d9a9;
+      --c5: #ffb347;
+      --c6: #60b4ff;
+    }
+
+    html,
+    body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .shell {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 220px;
+      min-width: 220px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 28px 0;
+      position: relative;
+    }
+
+    .sidebar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: -1px;
+      width: 1px;
+      height: 100%;
+      background: linear-gradient(180deg, transparent, var(--accent2) 50%, transparent);
+      opacity: .4;
+    }
+
+    .brand {
+      padding: 0 24px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: var(--accent);
+      display: grid;
+      place-items: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+      color: #000;
+    }
+
+    .brand-name {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 20px;
+    }
+
+    .nav {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 0 12px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .2s;
+      text-decoration: none;
+    }
+
+    .nav-item:hover {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .nav-item.active {
+      background: var(--accent);
+      color: #000;
+      font-weight: 600;
+    }
+
+    .nav-item .icon {
+      font-size: 16px;
+      width: 20px;
+      text-align: center;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 20px 24px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .month-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .month-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    /* Main */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 36px 40px;
+    }
+
+    .page-header {
+      margin-bottom: 32px;
+    }
+
+    .page-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -.5px;
+    }
+
+    .page-subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    /* Alert banner — hidden until needed */
+    .alert-banner {
+      background: rgba(255, 94, 94, .1);
+      border: 1px solid rgba(255, 94, 94, .3);
+      border-left: 3px solid var(--danger);
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+      font-size: 13.5px;
+      animation: slideDown .4s ease;
+    }
+
+    .alert-banner.hidden {
+      display: none;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Grid */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      transition: border-color .2s;
+    }
+
+    .card:hover {
+      border-color: #3e3e4e;
+    }
+
+    .card-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--muted);
+      margin-bottom: 16px;
+      font-weight: 500;
+    }
+
+    /* Donut */
+    .chart-card {
+      grid-column: 1;
+    }
+
+    .chart-wrap {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .donut-container {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      flex-shrink: 0;
+    }
+
+    svg.donut {
+      width: 180px;
+      height: 180px;
+      transform: rotate(-90deg);
+    }
+
+    .donut-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .donut-total {
+      font-family: 'Syne', sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .donut-sublabel {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    /* Empty donut ring */
+    .donut-empty {
+      stroke: var(--surface2);
+    }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .legend-name {
+      font-size: 13px;
+      color: var(--muted);
+      flex: 1;
+    }
+
+    .legend-pct {
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'Syne', sans-serif;
+    }
+
+    /* Empty legend */
+    .legend-empty {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .legend-empty a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .legend-empty a:hover {
+      text-decoration: underline;
+    }
+
+    /* Bank balance card */
+    .balance-card {
+      grid-column: 2;
+    }
+
+    .balance-amount {
+      font-family: 'Syne', sans-serif;
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+
+    .balance-amount .currency {
+      color: var(--muted);
+      font-size: 24px;
+    }
+
+    .balance-empty {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 12px;
+      line-height: 1.6;
+    }
+
+    .balance-empty a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .balance-empty a:hover {
+      text-decoration: underline;
+    }
+
+    .balance-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--muted);
+      background: var(--surface2);
+      padding: 8px 14px;
+      border-radius: 99px;
+      border: 1px dashed var(--border);
+    }
+
+    /* Quick actions */
+    .quick-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+    }
+
+    .btn-primary:hover {
+      background: #d4ff70;
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover {
+      background: var(--border);
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 99px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="shell">
+
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">T</div>
+        <span class="brand-name">Trackr</span>
+      </div>
+      <nav class="nav">
+        <a href="index.html" class="nav-item active"><span class="icon">⊞</span> Home</a>
+        <a href="expenses.html" class="nav-item"><span class="icon">↕</span> Expenses</a>
+        <a href="reports.html" class="nav-item"><span class="icon">◎</span> Reports</a>
+        <a href="#" class="nav-item"><span class="icon">⬡</span> Bank</a>
+        <a href="#" class="nav-item"><span class="icon">◈</span> Budget</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="month-label">Current period</div>
+        <div class="month-value" id="currentMonth"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="page-header">
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle" id="pageSubtitle"></p>
+      </div>
+
+      <!-- Only shown when budget is exceeded -->
+      <div class="alert-banner hidden" id="alertBanner">
+        <span>⚠</span>
+        <span><strong style="color:var(--danger)">Budget alert:</strong> <span id="alertMsg"></span></span>
+      </div>
+
+      <div class="dashboard-grid">
+
+        <!-- Donut chart -->
+        <div class="card chart-card">
+          <div class="card-label">Spending by category</div>
+          <div class="chart-wrap">
+            <div class="donut-container">
+              <svg class="donut" viewBox="0 0 180 180" id="donutSvg">
+                <!-- Empty ring shown by default -->
+                <circle class="donut-empty" cx="90" cy="90" r="70" fill="none" stroke-width="22" stroke-dasharray="440"
+                  stroke-dashoffset="0" />
+              </svg>
+              <div class="donut-center">
+                <div class="donut-total" id="donutTotal">₹0</div>
+                <div class="donut-sublabel" id="donutSub">No spending<br>yet</div>
+              </div>
+            </div>
+            <div class="legend" id="legend">
+              <div class="legend-empty">
+                No expenses logged yet.<br>
+                <a href="expenses.html">Add your first expense →</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bank balance -->
+        <div class="card balance-card">
+          <div class="card-label">Bank Balance</div>
+          <div id="balanceSection">
+            <div class="balance-amount">
+              <span class="currency">₹</span><span id="balanceAmt">—</span>
+            </div>
+            <div class="balance-empty">
+              Connect a bank account or add income<br>to see your balance here.
+              <br><br>
+              <a href="#">+ Connect bank account</a>
+            </div>
+            <div class="balance-hint">⬡ No account linked yet</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="quick-actions">
+        <button class="btn btn-primary" onclick="window.location='expenses.html'">＋ Add Expense</button>
+        <button class="btn btn-ghost" id="uploadReceiptBtn">↑ Upload Receipt</button>
+        <input type="file" id="receiptInput" accept="image/*,.pdf" style="display:none;">
+        <button class="btn btn-ghost">⤓ Export</button>
+      </div>
+    </main>
+
+  </div>
+  <script>
+    // Set current month label
+    const now = new Date();
+    document.getElementById('currentMonth').textContent =
+      now.toLocaleString('default', { month: 'long', year: 'numeric' });
+    document.getElementById('pageSubtitle').textContent =
+      `Your snapshot for ${now.toLocaleString('default', { month: 'long', year: 'numeric' })}`;
+
+    // ── Pull data from backend when connected ────────────────────────────────
+    // Replace BASE_URL with your Flask server address
+    const BASE_URL = '';
+
+    async function loadDashboard() {
+      try {
+        const y = now.getFullYear(), m = now.getMonth() + 1;
+
+        // Spending summary
+        const res = await fetch(`${BASE_URL}/expenses/summary?year=${y}&month=${m}`);
+        if (!res.ok) return; // server not running yet — show empty state
+        const data = await res.json();
+
+        // Also fetch raw expenses to get total even if no categories assigned
+        const rawRes = await fetch(`${BASE_URL}/expenses?per_page=100`);
+        const rawData = rawRes.ok ? await rawRes.json() : { expenses: [] };
+        const rawTotal = (rawData.expenses || []).reduce((s, e) => s + (e.amount || 0), 0);
+
+        if (rawTotal === 0 && (!data.categories || data.categories.length === 0)) return; // truly empty
+
+        // Update donut total from raw if summary is empty
+        document.getElementById('donutTotal').textContent =
+          '₹' + (data.total || rawTotal).toLocaleString('en-IN');
+        document.getElementById('donutSub').textContent = 'this month';
+
+        // Update donut total
+        document.getElementById('donutTotal').textContent = `₹${(data.total).toLocaleString('en-IN')}`;
+        document.getElementById('donutSub').textContent = 'this month';
+
+        // Draw donut segments
+        const svg = document.getElementById('donutSvg');
+        svg.innerHTML = ''; // remove empty ring
+        const r = 70, cx = 90, cy = 90, stroke = 22;
+        const circ = 2 * Math.PI * r;
+        const COLORS = ['#c8fb5e', '#7c6dfa', '#ff7eb3', '#38d9a9', '#ffb347', '#60b4ff'];
+        let offset = 0;
+        data.categories.forEach((cat, i) => {
+          const dash = (cat.percentage / 100) * circ;
+          const gap = 3;
+          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          circle.setAttribute('cx', cx); circle.setAttribute('cy', cy); circle.setAttribute('r', r);
+          circle.setAttribute('fill', 'none');
+          circle.setAttribute('stroke', COLORS[i % COLORS.length]);
+          circle.setAttribute('stroke-width', stroke);
+          circle.setAttribute('stroke-dasharray', `${dash - gap} ${circ - dash + gap}`);
+          circle.setAttribute('stroke-dashoffset', -offset);
+          svg.appendChild(circle);
+          offset += dash;
+        });
+
+        // Build legend
+        const legend = document.getElementById('legend');
+        legend.innerHTML = data.categories.map((cat, i) => `
+        <div class="legend-item">
+          <div class="legend-dot" style="background:${COLORS[i % COLORS.length]}"></div>
+          <span class="legend-name">${cat.category_name}</span>
+          <span class="legend-pct">${cat.percentage}%</span>
+        </div>`).join('');
+
+        // Balance
+        const bRes = await fetch(`${BASE_URL}/balance`);
+        const bData = await bRes.json();
+        if (bData.balance !== undefined) {
+          document.getElementById('balanceAmt').textContent =
+            bData.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+          document.querySelector('.balance-empty').style.display = 'none';
+          document.querySelector('.balance-hint').style.display = 'none';
+        }
+
+        // Budget alert
+        const budRes = await fetch(`${BASE_URL}/budgets?year=${y}&month=${m}`);
+        const budData = await budRes.json();
+        const overBudget = (budData.budgets || []).filter(b => b.alert);
+        if (overBudget.length > 0) {
+          document.getElementById('alertBanner').classList.remove('hidden');
+          document.getElementById('alertMsg').textContent =
+            `${overBudget[0].category_id ? overBudget[0].category_id : 'Overall'} budget is at ${overBudget[0].percent_used}% — consider cutting back.`;
+        }
+
+      } catch (e) {
+        // Backend not running — empty state stays as-is
+      }
+    }
+
+    loadDashboard();
+
+    // Reload dashboard whenever user comes back to this tab
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) loadDashboard();
+    });
+    
+
+    //upload receipt 
+    document.getElementById('uploadReceiptBtn').addEventListener('click', () => {
+        document.getElementById('receiptInput').click();
+      });
+
+      document.getElementById('receiptInput').addEventListener('change', async function () {
+        const file = this.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          const res = await fetch('/receipts/scan', {
+            method: 'POST',
+            body: formData
+          });
+
+          if (!res.ok) {
+            const err = await res.json();
+            console.error("Server error:", err);
+            return;
+          }
+
+          const data = await res.json();
+          console.log("OCR RESULT:", data);
+
+          // 🔥 if auto-created → go to expenses page
+          if (data.auto_created) {
+            window.location.href = '/expenses.html';
+            return;
+          }
+
+          // 🔥 store draft
+          localStorage.setItem('ocrDraft', JSON.stringify(data.draft));
+
+          // reset input
+          this.value = '';
+
+          // 🔥 redirect
+          window.location.href = '/expenses.html';
+
+        } catch (err) {
+          console.error("Upload failed", err);
+        }
+      });
+  </script>
+</body>
+
+</html>

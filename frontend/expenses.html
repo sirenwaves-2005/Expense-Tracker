@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Trackr — Expenses</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #0f0f11;
+      --surface:  #1a1a1f;
+      --surface2: #222228;
+      --border:   #2e2e38;
+      --text:     #f0eff5;
+      --muted:    #7c7c90;
+      --accent:   #c8fb5e;
+      --accent2:  #7c6dfa;
+      --danger:   #ff5e5e;
+      --c1: #c8fb5e; --c2: #7c6dfa; --c3: #ff7eb3;
+      --c4: #38d9a9; --c5: #ffb347; --c6: #60b4ff;
+    }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; }
+    .shell { display: flex; height: 100vh; overflow: hidden; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 220px; min-width: 220px; background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; padding: 28px 0; position: relative; overflow: hidden;
+    }
+    .sidebar::after {
+      content: ''; position: absolute; top: 0; right: -1px; width: 1px; height: 100%;
+      background: linear-gradient(180deg, transparent, var(--accent2) 50%, transparent); opacity: .4;
+    }
+    .brand { padding: 0 24px 32px; display: flex; align-items: center; gap: 12px; }
+    .brand-icon { width: 38px; height: 38px; border-radius: 10px; background: var(--accent); display: grid; place-items: center; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: #000; }
+    .brand-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 20px; }
+    .nav { display: flex; flex-direction: column; gap: 2px; padding: 0 12px; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--muted); cursor: pointer; transition: all .2s; text-decoration: none; }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: var(--accent); color: #000; font-weight: 600; }
+    .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+    .sidebar-footer { margin-top: auto; padding: 20px 24px 0; border-top: 1px solid var(--border); }
+    .month-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 6px; }
+    .month-value { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; }
+
+    .main { flex: 1; overflow-y: auto; padding: 36px 40px; display: flex; flex-direction: column; gap: 24px; }
+
+    .page-header { display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0; }
+    .page-title { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; letter-spacing: -.5px; }
+    .page-subtitle { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+    .btn { padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; transition: all .2s; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:hover { background: #d4ff70; transform: translateY(-1px); }
+
+    .controls { display: flex; gap: 12px; align-items: center; flex-shrink: 0; }
+    .search-wrap { position: relative; flex: 1; }
+    .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 15px; pointer-events: none; }
+    .search-input { width: 100%; padding: 11px 16px 11px 42px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border-color .2s; }
+    .search-input::placeholder { color: var(--muted); }
+    .search-input:focus { border-color: var(--accent2); }
+    .filter-btn { display: flex; align-items: center; gap: 8px; padding: 11px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 14px; cursor: pointer; transition: all .2s; white-space: nowrap; font-family: 'DM Sans', sans-serif; }
+    .filter-btn:hover, .filter-btn.active { border-color: var(--accent2); color: var(--accent2); }
+    .filter-badge { background: var(--accent2); color: #fff; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 99px; min-width: 18px; text-align: center; }
+
+    .filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; flex-shrink: 0; }
+    .chip { padding: 6px 14px; border-radius: 99px; border: 1px solid var(--border); font-size: 13px; cursor: pointer; transition: all .2s; color: var(--muted); background: var(--surface); }
+    .chip:hover { border-color: var(--muted); color: var(--text); }
+    .chip.active { border-color: var(--accent); color: var(--accent); background: rgba(200,251,94,.08); }
+    .chip-label { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin-right: 4px; }
+
+    .date-range-wrap { display: none; align-items: center; gap: 8px; margin-left: 4px; }
+    .date-range-wrap.visible { display: flex; }
+    .date-input { padding: 6px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; transition: border-color .2s; color-scheme: dark; }
+    .date-input:focus { border-color: var(--accent2); }
+    .date-sep { color: var(--muted); font-size: 13px; }
+
+    .summary-row { display: flex; gap: 16px; flex-shrink: 0; }
+    .summary-row.hidden { display: none; }
+    .summary-card { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; }
+    .summary-card-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 6px; }
+    .summary-card-val { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; }
+    .summary-card-val.accent { color: var(--accent); }
+
+    .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; flex-shrink: 0; }
+    .table-head { display: grid; grid-template-columns: 2fr 1.2fr 1fr 1fr 100px 80px; padding: 12px 24px; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+    .table-head.hidden { display: none; }
+    .expense-row { display: grid; grid-template-columns: 2fr 1.2fr 1fr 1fr 100px 80px; padding: 15px 24px; border-bottom: 1px solid var(--border); align-items: center; transition: background .15s; cursor: pointer; animation: rowIn .3s ease both; }
+    .expense-row:last-child { border-bottom: none; }
+    .expense-row:hover { background: var(--surface2); }
+    @keyframes rowIn { from { opacity:0; transform: translateX(-8px); } to { opacity:1; transform:translateX(0); } }
+    .expense-desc { display: flex; align-items: center; gap: 12px; }
+    .expense-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--surface2); display: grid; place-items: center; font-size: 16px; flex-shrink: 0; }
+    .expense-name { font-size: 14px; font-weight: 500; }
+    .expense-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+    .expense-cat { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 99px; background: var(--surface2); color: var(--muted); }
+    .expense-cat-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .expense-date { font-size: 13px; color: var(--muted); }
+    .expense-amount { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
+    .status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 99px; text-transform: uppercase; letter-spacing: .5px; }
+    .status-paid    { background: rgba(200,251,94,.12); color: var(--accent); }
+    .status-pending { background: rgba(255,179,71,.12);  color: var(--c5); }
+    .row-actions { display: flex; gap: 6px; justify-content: flex-end; opacity: 0; transition: opacity .15s; }
+    .expense-row:hover .row-actions { opacity: 1; }
+    .action-btn { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; font-size: 13px; display: grid; place-items: center; transition: all .15s; }
+    .action-btn:hover { background: var(--surface2); color: var(--text); }
+    .action-btn.del:hover { background: rgba(255,94,94,.15); color: var(--danger); border-color: var(--danger); }
+
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 72px 24px; text-align: center; }
+    .empty-icon { width: 64px; height: 64px; border-radius: 18px; background: var(--surface2); border: 1px dashed var(--border); display: grid; place-items: center; font-size: 28px; margin-bottom: 20px; }
+    .empty-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .empty-desc { color: var(--muted); font-size: 14px; line-height: 1.6; max-width: 300px; }
+    .empty-cta { margin-top: 20px; padding: 10px 22px; background: var(--accent); color: #000; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .2s; }
+    .empty-cta:hover { background: #d4ff70; }
+
+    .pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-top: 1px solid var(--border); }
+    .pagination.hidden { display: none; }
+    .pagination-info { font-size: 13px; color: var(--muted); }
+    .pagination-btns { display: flex; gap: 4px; }
+    .page-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; font-size: 13px; display: grid; place-items: center; transition: all .15s; }
+    .page-btn:hover { background: var(--surface2); color: var(--text); }
+    .page-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+    .page-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+    /* ── Add Expense Modal ── */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 32px; width: 480px; max-width: 95vw; animation: modalIn .3s cubic-bezier(.16,1,.3,1); }
+    @keyframes modalIn { from { opacity:0; transform:scale(.95) translateY(10px); } to { opacity:1; transform:scale(1) translateY(0); } }
+    .modal-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; margin-bottom: 24px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1/-1; }
+    .form-label { font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); }
+    .form-input, .form-select { padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border-color .2s; width: 100%; }
+    .form-input:focus, .form-select:focus { border-color: var(--accent2); }
+    .form-select option { background: var(--surface2); }
+    .status-toggle { display: flex; gap: 8px; }
+    .status-opt { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; text-align: center; transition: all .2s; }
+    .status-opt.selected-paid    { border-color: var(--accent); color: var(--accent); background: rgba(200,251,94,.08); }
+    .status-opt.selected-pending { border-color: var(--c5);    color: var(--c5);    background: rgba(255,179,71,.08); }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+    .btn-ghost-sm { padding: 9px 18px; border-radius: 9px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; transition: all .2s; }
+    .btn-ghost-sm:hover { background: var(--surface2); color: var(--text); }
+
+    /* ── Detail Drawer ── */
+    .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); backdrop-filter: blur(2px); z-index: 200; display: none; }
+    .drawer-overlay.open { display: block; }
+    .drawer {
+      position: fixed; top: 0; right: -480px; width: 460px; max-width: 95vw; height: 100vh;
+      background: var(--surface); border-left: 1px solid var(--border);
+      display: flex; flex-direction: column; z-index: 201;
+      transition: right .3s cubic-bezier(.16,1,.3,1);
+      overflow: hidden;
+    }
+    .drawer.open { right: 0; }
+
+    .drawer-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 24px 28px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .drawer-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; }
+    .drawer-close { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; font-size: 16px; display: grid; place-items: center; transition: all .15s; }
+    .drawer-close:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+    .drawer-body { flex: 1; overflow-y: auto; padding: 28px; display: flex; flex-direction: column; gap: 24px; }
+
+    /* View mode */
+    .detail-amount { font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; letter-spacing: -1px; }
+    .detail-desc { font-size: 16px; font-weight: 500; margin-top: 4px; color: var(--muted); }
+
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .detail-item { background: var(--surface2); border-radius: 12px; padding: 14px 16px; }
+    .detail-item-label { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin-bottom: 6px; }
+    .detail-item-val { font-size: 14px; font-weight: 500; }
+
+    .detail-notes { background: var(--surface2); border-radius: 12px; padding: 16px; }
+    .detail-notes-label { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin-bottom: 8px; }
+    .detail-notes-text { font-size: 14px; line-height: 1.6; color: var(--text); }
+
+    /* Receipt section */
+    .receipt-section { display: flex; flex-direction: column; gap: 12px; }
+    .receipt-label { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); }
+
+    .receipt-preview {
+      border-radius: 12px; overflow: hidden; border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      background: var(--surface2); min-height: 120px; position: relative;
+    }
+    .receipt-preview img { width: 100%; height: auto; display: block; border-radius: 12px; }
+    .receipt-preview .receipt-pdf {
+      display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px;
+      color: var(--muted); font-size: 13px;
+    }
+    .receipt-pdf-icon { font-size: 32px; }
+    .receipt-pdf a { color: var(--accent2); text-decoration: none; font-size: 13px; }
+    .receipt-pdf a:hover { text-decoration: underline; }
+
+    .receipt-upload-zone {
+      border: 2px dashed var(--border); border-radius: 12px; padding: 24px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      cursor: pointer; transition: all .2s; text-align: center;
+    }
+    .receipt-upload-zone:hover { border-color: var(--accent2); background: rgba(124,109,250,.05); }
+    .receipt-upload-zone.dragover { border-color: var(--accent); background: rgba(200,251,94,.05); }
+    .upload-icon { font-size: 24px; }
+    .upload-text { font-size: 13px; color: var(--muted); }
+    .upload-text span { color: var(--accent2); }
+    .upload-hint { font-size: 11px; color: var(--muted); opacity: .7; }
+
+    /* Drawer footer actions */
+    .drawer-footer {
+      padding: 20px 28px; border-top: 1px solid var(--border); flex-shrink: 0;
+      display: flex; gap: 10px;
+    }
+    .btn-edit { flex: 1; padding: 11px; background: var(--accent2); color: #fff; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .2s; }
+    .btn-edit:hover { background: #6b5ce7; }
+    .btn-danger { padding: 11px 18px; background: rgba(255,94,94,.12); color: var(--danger); border: 1px solid rgba(255,94,94,.2); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: all .2s; }
+    .btn-danger:hover { background: rgba(255,94,94,.2); }
+
+    /* Edit mode inside drawer */
+    .edit-form { display: flex; flex-direction: column; gap: 16px; }
+    .edit-form .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .edit-form .form-group.full { grid-column: 1/-1; }
+    .edit-actions { display: flex; gap: 10px; margin-top: 4px; }
+    .btn-save { flex: 1; padding: 11px; background: var(--accent); color: #000; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all .2s; }
+    .btn-save:hover { background: #d4ff70; }
+    .btn-cancel-edit { padding: 11px 18px; background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; transition: all .2s; }
+    .btn-cancel-edit:hover { background: var(--surface2); color: var(--text); }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">T</div>
+      <span class="brand-name">Trackr</span>
+    </div>
+    <nav class="nav">
+      <a href="index.html" class="nav-item"><span class="icon">⊞</span> Home</a>
+      <a href="expenses.html" class="nav-item active"><span class="icon">↕</span> Expenses</a>
+      <a href="reports.html" class="nav-item"><span class="icon">◎</span> Reports</a>
+      <a href="#" class="nav-item"><span class="icon">⬡</span> Bank</a>
+      <a href="#" class="nav-item"><span class="icon">◈</span> Budget</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="month-label">Current period</div>
+      <div class="month-value" id="currentMonth"></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Expenses</h1>
+        <p class="page-subtitle" id="pageSubtitle">Loading…</p>
+      </div>
+      <button class="btn btn-primary" onclick="openModal()">＋ Add Expense</button>
+    </div>
+
+    <div class="controls">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input class="search-input" type="text" placeholder="Search expenses, merchants…" id="searchInput" oninput="renderAll()"/>
+      </div>
+      <button class="filter-btn" id="filterToggle" onclick="toggleFilters()">
+        ⊟ Filters <span class="filter-badge" id="filterCount">0</span>
+      </button>
+    </div>
+
+    <div class="filter-row" id="filterRow" style="display:none">
+      <span class="chip-label">Period:</span>
+      <div class="chip active" onclick="toggleChip(this)" data-filter="period" data-val="month">This Month</div>
+      <div class="chip"        onclick="toggleChip(this)" data-filter="period" data-val="range">Date Range</div>
+      <div class="date-range-wrap" id="dateRangeWrap">
+        <input class="date-input" type="date" id="rangeFrom" onchange="applyDateRange()"/>
+        <span class="date-sep">→</span>
+        <input class="date-input" type="date" id="rangeTo" onchange="applyDateRange()"/>
+      </div>
+      &nbsp;
+      <span class="chip-label">Category:</span>
+      <div class="chip active" onclick="toggleChip(this)" data-filter="category" data-val="all">All</div>
+      <div class="chip" onclick="toggleChip(this)" data-filter="category" data-val="Food & Dining">🍔 Food</div>
+      <div class="chip" onclick="toggleChip(this)" data-filter="category" data-val="Shopping">🛍️ Shopping</div>
+      <div class="chip" onclick="toggleChip(this)" data-filter="category" data-val="Transport">🚗 Transport</div>
+      <div class="chip" onclick="toggleChip(this)" data-filter="category" data-val="Entertainment">🎬 Entertainment</div>
+      &nbsp;
+      <span class="chip-label">Status:</span>
+      <div class="chip active" onclick="toggleChip(this)" data-filter="status" data-val="all">All</div>
+      <div class="chip" onclick="toggleChip(this)" data-filter="status" data-val="approved">Paid</div>
+      <div class="chip" onclick="toggleChip(this)" data-filter="status" data-val="pending">Pending</div>
+    </div>
+
+    <div class="summary-row hidden" id="summaryRow">
+      <div class="summary-card">
+        <div class="summary-card-label">Total Expenses</div>
+        <div class="summary-card-val" id="totalAmt">—</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">Transactions</div>
+        <div class="summary-card-val accent" id="totalCount">0</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">Avg per day</div>
+        <div class="summary-card-val" id="avgDay">—</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">Largest</div>
+        <div class="summary-card-val" id="largest">—</div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-head hidden" id="tableHead">
+        <div>Description</div><div>Category</div><div>Date</div><div>Amount</div><div>Status</div><div></div>
+      </div>
+      <div id="expenseList">
+        <div class="empty-state">
+          <div class="empty-icon">↕</div>
+          <div class="empty-title">No expenses yet</div>
+          <div class="empty-desc">Start tracking by adding your first expense.</div>
+          <button class="empty-cta" onclick="openModal()">＋ Add first expense</button>
+        </div>
+      </div>
+      <div class="pagination hidden" id="pagination">
+        <span class="pagination-info" id="pageInfo"></span>
+        <div class="pagination-btns" id="paginationBtns"></div>
+      </div>
+    </div>
+    <div style="height:8px;flex-shrink:0"></div>
+  </main>
+</div>
+
+<!-- ── Add Expense Modal ── -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <div class="modal-title">Add Expense</div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label class="form-label">Description</label>
+        <input class="form-input" id="fDesc" type="text" placeholder="e.g. Lunch at Swiggy"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount (₹)</label>
+        <input class="form-input" id="fAmount" type="number" placeholder="0.00" min="0"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input class="form-input" id="fDate" type="date"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-select" id="fCategory"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Merchant (optional)</label>
+        <input class="form-input" id="fMerchant" type="text" placeholder="e.g. Swiggy"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Payment Status</label>
+        <div class="status-toggle">
+          <button type="button" class="status-opt selected-paid" id="optPaid"   onclick="pickStatus('approved')">✓ Paid</button>
+          <button type="button" class="status-opt"               id="optPending" onclick="pickStatus('pending')">⏳ Pending</button>
+        </div>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Notes (optional)</label>
+        <input class="form-input" id="fNotes" type="text" placeholder="Any notes…"/>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost-sm" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveExpense()">Save Expense</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Detail / Edit Drawer ── -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <span class="drawer-title" id="drawerTitle">Expense Details</span>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+  <div class="drawer-footer" id="drawerFooter"></div>
+</div>
+
+<input type="file" id="receiptFileInput" accept="image/*,.pdf" style="display:none" onchange="handleReceiptUpload(event)"/>
+
+<script>
+  const BASE_URL = '';
+  const now = new Date();
+  const selYear  = now.getFullYear();
+  const selMonth = now.getMonth() + 1;
+
+  let categoryList  = [];
+  let allExpenses   = [];
+  let currentPage   = 1;
+  const PER_PAGE    = 10;
+  let chosenStatus  = 'approved';
+  let activeFilters = { period: 'month', category: 'all', status: 'all' };
+  let rangeFrom = null;
+  let rangeTo   = null;
+  let activeExpense = null; // currently open in drawer
+
+  const CAT_COLORS = { 'Food & Dining':'#c8fb5e','Shopping':'#7c6dfa','Transport':'#ff7eb3','Entertainment':'#38d9a9','Utilities':'#ffb347','Health':'#ff5e5e','Groceries':'#38d9a9','Subscriptions':'#60b4ff','Other':'#7c7c90' };
+  const CAT_ICONS  = { 'Food & Dining':'🍔','Shopping':'🛍️','Transport':'🚗','Entertainment':'🎬','Utilities':'💡','Health':'🏥','Groceries':'🛒','Subscriptions':'📱','Other':'📦' };
+
+  document.getElementById('currentMonth').textContent = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+  // ── Status picker (add modal) ──────────────────────────────────────────
+  function pickStatus(val) {
+    chosenStatus = val;
+    document.getElementById('optPaid').className    = 'status-opt' + (val==='approved' ? ' selected-paid'    : '');
+    document.getElementById('optPending').className = 'status-opt' + (val==='pending'  ? ' selected-pending' : '');
+  }
+
+  // ── Load categories ────────────────────────────────────────────────────
+  async function loadCategories() {
+    try {
+      const res  = await fetch(`${BASE_URL}/categories`);
+      const data = await res.json();
+      categoryList = data.categories || [];
+      const sel = document.getElementById('fCategory');
+      sel.innerHTML = categoryList.map(c => `<option value="${c.name}">${c.icon||''} ${c.name}</option>`).join('');
+    } catch (e) {}
+  }
+
+  // ── Load expenses ──────────────────────────────────────────────────────
+  async function loadExpenses() {
+    try {
+      const res  = await fetch(`${BASE_URL}/expenses?per_page=500`);
+      if (!res.ok) return;
+      const data = await res.json();
+      allExpenses = data.expenses || [];
+      renderAll();
+    } catch (e) {
+      document.getElementById('pageSubtitle').textContent = 'Could not reach server';
+    }
+  }
+
+  // ── Period filter ──────────────────────────────────────────────────────
+  function getPeriodExpenses() {
+    return allExpenses.filter(e => {
+      const parts = e.expense_date.split('-');
+      const eYear = parseInt(parts[0]), eMonth = parseInt(parts[1]), eDay = parseInt(parts[2]);
+      const eDate = new Date(eYear, eMonth - 1, eDay);
+      if (activeFilters.period === 'month') return eYear === selYear && eMonth === selMonth;
+      if (activeFilters.period === 'range') {
+        if (rangeFrom && rangeTo)  return eDate >= rangeFrom && eDate <= rangeTo;
+        if (rangeFrom)             return eDate >= rangeFrom;
+        if (rangeTo)               return eDate <= rangeTo;
+        return true;
+      }
+      return true;
+    });
+  }
+
+  function daysInPeriod() {
+    if (activeFilters.period === 'range' && rangeFrom && rangeTo)
+      return Math.max(1, Math.round((rangeTo - rangeFrom) / (1000*60*60*24)) + 1);
+    return new Date(selYear, selMonth, 0).getDate();
+  }
+
+  function periodLabel() {
+    if (activeFilters.period === 'range') {
+      const f = rangeFrom ? rangeFrom.toLocaleDateString('en-IN') : '…';
+      const t = rangeTo   ? rangeTo.toLocaleDateString('en-IN')   : '…';
+      return `${f} → ${t}`;
+    }
+    return new Date(selYear, selMonth - 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+  }
+
+  // ── Render table ───────────────────────────────────────────────────────
+  function renderAll() {
+    const periodData = getPeriodExpenses();
+    const term = document.getElementById('searchInput').value.toLowerCase();
+    const filtered = periodData.filter(e => {
+      const matchS = !term || (e.description||'').toLowerCase().includes(term) || (e.merchant||'').toLowerCase().includes(term);
+      const matchC = activeFilters.category === 'all' || (e.category && e.category.name === activeFilters.category);
+      const matchT = activeFilters.status   === 'all' || e.status === activeFilters.status;
+      return matchS && matchC && matchT;
+    });
+
+    const list       = document.getElementById('expenseList');
+    const tableHead  = document.getElementById('tableHead');
+    const summaryRow = document.getElementById('summaryRow');
+    const pagination = document.getElementById('pagination');
+    const subtitle   = document.getElementById('pageSubtitle');
+    const label      = periodLabel();
+
+    if (allExpenses.length === 0) {
+      list.innerHTML = emptyHTML('↕', 'No expenses yet', 'Start tracking by adding your first expense.', true);
+      tableHead.classList.add('hidden'); summaryRow.classList.add('hidden'); pagination.classList.add('hidden');
+      subtitle.textContent = 'No expenses logged yet'; return;
+    }
+    if (filtered.length === 0) {
+      list.innerHTML = emptyHTML('⌕', 'No expenses for this period', 'Try a different date range or clear your filters.', false);
+      tableHead.classList.add('hidden'); pagination.classList.add('hidden');
+      summaryRow.classList.remove('hidden');
+      document.getElementById('totalAmt').textContent  = '₹0.00';
+      document.getElementById('totalCount').textContent = '0';
+      document.getElementById('avgDay').textContent    = '₹0';
+      document.getElementById('largest').textContent   = '₹0.00';
+      subtitle.textContent = `0 expenses · ${label}`; return;
+    }
+
+    tableHead.classList.remove('hidden'); summaryRow.classList.remove('hidden'); pagination.classList.remove('hidden');
+
+    const total   = filtered.reduce((s, e) => s + (e.amount || 0), 0);
+    const largest = Math.max(...filtered.map(e => e.amount || 0));
+    const avgDay  = Math.round(total / daysInPeriod());
+
+    document.getElementById('totalAmt').textContent   = `₹${total.toLocaleString('en-IN',{minimumFractionDigits:2})}`;
+    document.getElementById('totalCount').textContent  = filtered.length;
+    document.getElementById('avgDay').textContent     = `₹${avgDay.toLocaleString('en-IN')}`;
+    document.getElementById('largest').textContent    = `₹${largest.toLocaleString('en-IN',{minimumFractionDigits:2})}`;
+    subtitle.textContent = `${filtered.length} expense${filtered.length!==1?'s':''} · ${label}`;
+
+    const totalPages = Math.ceil(filtered.length / PER_PAGE);
+    if (currentPage > totalPages) currentPage = 1;
+    const start    = (currentPage - 1) * PER_PAGE;
+    const pageData = filtered.slice(start, start + PER_PAGE);
+
+    document.getElementById('pageInfo').textContent = `Showing ${start+1}–${Math.min(start+PER_PAGE, filtered.length)} of ${filtered.length}`;
+    const pBtns = document.getElementById('paginationBtns');
+    pBtns.innerHTML =
+      `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>` +
+      Array.from({length:totalPages},(_,i) => `<button class="page-btn ${i+1===currentPage?'active':''}" onclick="goPage(${i+1})">${i+1}</button>`).join('') +
+      `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>`;
+
+    list.innerHTML = pageData.map((e, i) => {
+      const catName    = e.category ? e.category.name : 'Other';
+      const color      = CAT_COLORS[catName] || '#7c7c90';
+      const icon       = CAT_ICONS[catName]  || '📦';
+      const isPaid     = e.status === 'approved';
+      const statusCls  = isPaid ? 'status-paid' : 'status-pending';
+      const statusLabel = isPaid ? 'Paid' : 'Pending';
+      const sub        = e.merchant ? e.merchant : (e.notes ? e.notes : '');
+      return `<div class="expense-row" style="animation-delay:${i*0.03}s" onclick="openDrawer(${e.id})">
+        <div class="expense-desc">
+          <div class="expense-icon">${icon}</div>
+          <div>
+            <div class="expense-name">${e.description}</div>
+            <div class="expense-sub">${sub}</div>
+          </div>
+        </div>
+        <div><span class="expense-cat"><span class="expense-cat-dot" style="background:${color}"></span>${catName}</span></div>
+        <div class="expense-date">${e.expense_date}</div>
+        <div class="expense-amount">₹${(e.amount||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</div>
+        <div><span class="status-badge ${statusCls}">${statusLabel}</span></div>
+        <div class="row-actions">
+          <button class="action-btn del" onclick="event.stopPropagation();deleteExpense(${e.id})" title="Delete">✕</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function goPage(p) {
+    const total = Math.ceil(getPeriodExpenses().length / PER_PAGE);
+    if (p < 1 || p > total) return;
+    currentPage = p; renderAll();
+  }
+
+  function emptyHTML(icon, title, desc, showCta) {
+    return `<div class="empty-state"><div class="empty-icon">${icon}</div><div class="empty-title">${title}</div><div class="empty-desc">${desc}</div>${showCta?'<button class="empty-cta" onclick="openModal()">＋ Add first expense</button>':''}</div>`;
+  }
+
+  // ── Drawer: open detail view ───────────────────────────────────────────
+  function openDrawer(id) {
+    activeExpense = allExpenses.find(e => e.id === id);
+    if (!activeExpense) return;
+    renderDrawerView();
+    document.getElementById('drawerOverlay').classList.add('open');
+    document.getElementById('drawer').classList.add('open');
+  }
+
+  function closeDrawer() {
+    document.getElementById('drawerOverlay').classList.remove('open');
+    document.getElementById('drawer').classList.remove('open');
+    activeExpense = null;
+  }
+
+  function renderDrawerView() {
+    const e = activeExpense;
+    const catName  = e.category ? e.category.name : 'Other';
+    const color    = CAT_COLORS[catName] || '#7c7c90';
+    const icon     = CAT_ICONS[catName]  || '📦';
+    const isPaid   = e.status === 'approved';
+    const statusCls   = isPaid ? 'status-paid'    : 'status-pending';
+    const statusLabel = isPaid ? '✓ Paid'         : '⏳ Pending';
+
+    document.getElementById('drawerTitle').textContent = 'Expense Details';
+
+    document.getElementById('drawerBody').innerHTML = `
+      <div>
+        <div class="detail-amount">₹${(e.amount||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</div>
+        <div class="detail-desc">${e.description}</div>
+      </div>
+
+      <div class="detail-grid">
+        <div class="detail-item">
+          <div class="detail-item-label">Category</div>
+          <div class="detail-item-val">${icon} ${catName}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-item-label">Date</div>
+          <div class="detail-item-val">${e.expense_date}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-item-label">Merchant</div>
+          <div class="detail-item-val">${e.merchant || '<span style="color:var(--muted)">—</span>'}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-item-label">Status</div>
+          <div class="detail-item-val"><span class="status-badge ${statusCls}">${statusLabel}</span></div>
+        </div>
+      </div>
+
+      ${e.notes ? `<div class="detail-notes">
+        <div class="detail-notes-label">Notes</div>
+        <div class="detail-notes-text">${e.notes}</div>
+      </div>` : ''}
+
+      <div class="receipt-section">
+        <div class="receipt-label">Receipt / Bill</div>
+        ${renderReceiptPreview(e)}
+        <div class="receipt-upload-zone" id="uploadZone"
+          onclick="document.getElementById('receiptFileInput').click()"
+          ondragover="event.preventDefault();this.classList.add('dragover')"
+          ondragleave="this.classList.remove('dragover')"
+          ondrop="handleReceiptDrop(event)">
+          <div class="upload-icon">📎</div>
+          <div class="upload-text"><span>Click to upload</span> or drag & drop</div>
+          <div class="upload-hint">JPG, PNG, PDF — max 10 MB</div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('drawerFooter').innerHTML = `
+      <button class="btn-edit" onclick="renderDrawerEdit()">✎ Edit</button>
+      <button class="btn-danger" onclick="deleteExpense(${e.id}, true)">Delete</button>
+    `;
+  }
+
+  function renderReceiptPreview(e) {
+    if (!e.receipt_url) return '';
+    const url = e.receipt_url;
+    const isPdf = url.toLowerCase().endsWith('.pdf');
+    if (isPdf) {
+      return `<div class="receipt-preview"><div class="receipt-pdf">
+        <div class="receipt-pdf-icon">📄</div>
+        <div>PDF Receipt</div>
+        <a href="${url}" target="_blank">View / Download</a>
+      </div></div>`;
+    }
+    return `<div class="receipt-preview"><img src="${url}" alt="Receipt" onclick="window.open('${url}','_blank')"/></div>`;
+  }
+
+  // ── Drawer: edit mode ──────────────────────────────────────────────────
+  function renderDrawerEdit() {
+    const e = activeExpense;
+    document.getElementById('drawerTitle').textContent = 'Edit Expense';
+
+    const catOptions = categoryList.map(c =>
+      `<option value="${c.name}" ${e.category && e.category.name === c.name ? 'selected' : ''}>${c.icon||''} ${c.name}</option>`
+    ).join('');
+
+    const isPaid = e.status === 'approved';
+
+    document.getElementById('drawerBody').innerHTML = `
+      <div class="edit-form">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label class="form-label">Description</label>
+            <input class="form-input" id="eDesc" type="text" value="${esc(e.description)}"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Amount (₹)</label>
+            <input class="form-input" id="eAmount" type="number" value="${e.amount}" min="0"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input class="form-input" id="eDate" type="date" value="${e.expense_date}"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select class="form-select" id="eCategory">${catOptions}</select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Merchant</label>
+            <input class="form-input" id="eMerchant" type="text" value="${esc(e.merchant||'')}"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <div class="status-toggle">
+              <button type="button" id="eOptPaid"    class="status-opt ${isPaid  ? 'selected-paid'    : ''}" onclick="pickEditStatus('approved')">✓ Paid</button>
+              <button type="button" id="eOptPending" class="status-opt ${!isPaid ? 'selected-pending' : ''}" onclick="pickEditStatus('pending')">⏳ Pending</button>
+            </div>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Notes</label>
+            <input class="form-input" id="eNotes" type="text" value="${esc(e.notes||'')}"/>
+          </div>
+        </div>
+        <div class="edit-actions">
+          <button class="btn-save" onclick="saveEdit()">Save Changes</button>
+          <button class="btn-cancel-edit" onclick="renderDrawerView()">Cancel</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('drawerFooter').innerHTML = '';
+  }
+
+  let editChosenStatus = null;
+  function pickEditStatus(val) {
+    editChosenStatus = val;
+    document.getElementById('eOptPaid').className    = 'status-opt' + (val==='approved' ? ' selected-paid'    : '');
+    document.getElementById('eOptPending').className = 'status-opt' + (val==='pending'  ? ' selected-pending' : '');
+  }
+
+  async function saveEdit() {
+    const desc   = document.getElementById('eDesc').value.trim();
+    const amount = parseFloat(document.getElementById('eAmount').value);
+    if (!desc || !amount || amount <= 0) { alert('Description and valid amount required.'); return; }
+
+    const catName = document.getElementById('eCategory').value;
+    const catObj  = categoryList.find(c => c.name === catName);
+    const status  = editChosenStatus || activeExpense.status;
+
+    const payload = {
+      description:  desc,
+      amount_cents: Math.round(amount * 100),
+      expense_date: document.getElementById('eDate').value,
+      merchant:     document.getElementById('eMerchant').value.trim() || null,
+      notes:        document.getElementById('eNotes').value.trim()    || null,
+      category_id:  catObj ? catObj.id : null,
+      status,
+    };
+    try {
+      const res = await fetch(`${BASE_URL}/expenses/${activeExpense.id}`, {
+        method: 'PATCH', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        const idx = allExpenses.findIndex(e => e.id === activeExpense.id);
+        if (idx !== -1) allExpenses[idx] = updated;
+        activeExpense = updated;
+        renderDrawerView();
+        renderAll();
+      } else {
+        const err = await res.json().catch(()=>({}));
+        alert('Error: ' + (err.error || res.status));
+      }
+    } catch (err) {
+      alert('Cannot reach server.');
+    }
+  }
+
+  // ── Receipt upload ─────────────────────────────────────────────────────
+  function handleReceiptDrop(event) {
+    event.preventDefault();
+    document.getElementById('uploadZone').classList.remove('dragover');
+    const file = event.dataTransfer.files[0];
+    if (file) uploadReceipt(file);
+  }
+
+  function handleReceiptUpload(event) {
+    const file = event.target.files[0];
+    if (file) uploadReceipt(file);
+    event.target.value = '';
+  }
+
+  async function uploadReceipt(file) {
+    if (!activeExpense) return;
+    const maxMB = 10;
+    if (file.size > maxMB * 1024 * 1024) { alert(`File too large. Max ${maxMB}MB.`); return; }
+
+    const zone = document.getElementById('uploadZone');
+    if (zone) { zone.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:13px">Uploading…</div>'; }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('expense_id', activeExpense.id);
+
+    try {
+      const res = await fetch(`${BASE_URL}/receipts/upload`, { method: 'POST', body: formData });
+      if (res.ok) {
+        const data = await res.json();
+        // Update expense in memory with receipt info
+        const idx = allExpenses.findIndex(e => e.id === activeExpense.id);
+        if (idx !== -1) {
+          allExpenses[idx].receipt_url      = data.receipt_url || data.url;
+          allExpenses[idx].receipt_filename = data.filename;
+          activeExpense = allExpenses[idx];
+        }
+        renderDrawerView();
+      } else {
+        alert('Upload failed. Make sure the receipts route is set up.');
+        renderDrawerView();
+      }
+    } catch (err) {
+      alert('Cannot reach server.');
+      renderDrawerView();
+    }
+  }
+
+  // ── Delete expense ─────────────────────────────────────────────────────
+  async function deleteExpense(id, fromDrawer = false) {
+    if (!confirm('Delete this expense?')) return;
+    try {
+      await fetch(`${BASE_URL}/expenses/${id}`, { method: 'DELETE' });
+    } catch (e) {}
+    allExpenses = allExpenses.filter(e => e.id !== id);
+    if (fromDrawer) closeDrawer();
+    renderAll();
+  }
+
+  // ── Add Expense modal ──────────────────────────────────────────────────
+  function openModal() {
+    document.getElementById('fDesc').value     = '';
+    document.getElementById('fAmount').value   = '';
+    document.getElementById('fMerchant').value = '';
+    document.getElementById('fNotes').value    = '';
+    document.getElementById('fDate').value     = now.toISOString().split('T')[0];
+    pickStatus('approved');
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() { document.getElementById('modal').classList.remove('open'); }
+  document.getElementById('modal').addEventListener('click', e => { if (e.target === document.getElementById('modal')) closeModal(); });
+
+  async function saveExpense() {
+    const desc   = document.getElementById('fDesc').value.trim();
+    const amount = parseFloat(document.getElementById('fAmount').value);
+    if (!desc || !amount || amount <= 0) { alert('Please enter a description and valid amount.'); return; }
+    const catName = document.getElementById('fCategory').value;
+    const catObj  = categoryList.find(c => c.name === catName);
+    const payload = {
+      description:  desc,
+      amount_cents: Math.round(amount * 100),
+      expense_date: document.getElementById('fDate').value,
+      merchant:     document.getElementById('fMerchant').value.trim() || null,
+      notes:        document.getElementById('fNotes').value.trim()    || null,
+      category_id:  catObj ? catObj.id : null,
+      status:       chosenStatus,
+    };
+    try {
+      const res = await fetch(`${BASE_URL}/expenses`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      if (res.ok) { closeModal(); await loadExpenses(); }
+      else { const err = await res.json().catch(()=>({})); alert('Error: ' + (err.error || res.status)); }
+    } catch (e) { alert('Cannot reach server. Make sure Flask is running.'); }
+  }
+
+  // ── Chip filters ───────────────────────────────────────────────────────
+  function applyDateRange() {
+    const f = document.getElementById('rangeFrom').value;
+    const t = document.getElementById('rangeTo').value;
+    rangeFrom = f ? new Date(f) : null;
+    rangeTo   = t ? new Date(t) : null;
+    currentPage = 1; renderAll();
+  }
+
+  function toggleChip(el) {
+    const filter = el.dataset.filter;
+    document.querySelectorAll(`[data-filter="${filter}"]`).forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    activeFilters[filter] = el.dataset.val;
+    currentPage = 1;
+    if (filter === 'period') {
+      const wrap = document.getElementById('dateRangeWrap');
+      if (el.dataset.val === 'range') { wrap.classList.add('visible'); }
+      else { wrap.classList.remove('visible'); rangeFrom = null; rangeTo = null; }
+    }
+    const count = (activeFilters.category !== 'all' ? 1 : 0) + (activeFilters.status !== 'all' ? 1 : 0) + (activeFilters.period !== 'month' ? 1 : 0);
+    document.getElementById('filterCount').textContent = count;
+    document.getElementById('filterToggle').classList.toggle('active', count > 0);
+    renderAll();
+  }
+
+  function toggleFilters() {
+    const row = document.getElementById('filterRow');
+    row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+  }
+
+  // ── Utility ────────────────────────────────────────────────────────────
+  function esc(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+
+  window.addEventListener('DOMContentLoaded', async () => {
+      await loadCategories();
+      await loadExpenses();
+      const draft = localStorage.getItem('ocrDraft');
+      if (!draft) return;
+
+      const data = JSON.parse(draft);
+
+      openModal(); 
+
+      document.getElementById('fDesc').value = data.description || '';
+      document.getElementById('fAmount').value = data.amount_cents ? (data.amount_cents / 100) : '';
+      document.getElementById('fDate').value = data.expense_date || '';
+      document.getElementById('fMerchant').value = data.merchant || '';
+      document.getElementById('fCategory').value = data.category || '';
+      pickStatus(data.status || 'pending');
+
+      localStorage.removeItem('ocrDraft');
+    });
+</script>
+</body>
+</html>

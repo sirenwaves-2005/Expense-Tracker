@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Trackr — Reports</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #0f0f11;
+      --surface:  #1a1a1f;
+      --surface2: #222228;
+      --border:   #2e2e38;
+      --text:     #f0eff5;
+      --muted:    #7c7c90;
+      --accent:   #c8fb5e;
+      --accent2:  #7c6dfa;
+      --danger:   #ff5e5e;
+      --success:  #38d9a9;
+      --warn:     #ffb347;
+    }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; }
+    .shell { display: flex; height: 100vh; overflow: hidden; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 220px; min-width: 220px; background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; padding: 28px 0; position: relative; overflow: hidden;
+    }
+    .sidebar::after {
+      content: ''; position: absolute; top: 0; right: -1px; width: 1px; height: 100%;
+      background: linear-gradient(180deg, transparent, var(--accent2) 50%, transparent); opacity: .4;
+    }
+    .brand { padding: 0 24px 32px; display: flex; align-items: center; gap: 12px; }
+    .brand-icon { width: 38px; height: 38px; border-radius: 10px; background: var(--accent); display: grid; place-items: center; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: #000; }
+    .brand-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 20px; }
+    .nav { display: flex; flex-direction: column; gap: 2px; padding: 0 12px; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--muted); cursor: pointer; transition: all .2s; text-decoration: none; }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: var(--accent); color: #000; font-weight: 600; }
+    .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+    .sidebar-footer { margin-top: auto; padding: 20px 24px 0; border-top: 1px solid var(--border); }
+    .month-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 6px; }
+    .month-value { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; }
+
+    .main { flex: 1; overflow-y: auto; padding: 36px 40px; display: flex; flex-direction: column; gap: 28px; }
+
+    .page-header { display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0; }
+    .page-title { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; letter-spacing: -.5px; }
+    .page-subtitle { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px; transition: all .2s;
+    }
+    .card:hover { border-color: #3e3e4e; }
+    .card-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin-bottom: 16px; font-weight: 500; }
+    .card-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; letter-spacing: -.3px; margin-bottom: 12px; }
+    .card-body { display: flex; flex-direction: column; gap: 16px; }
+
+    /* Chart card */
+    .chart-card { grid-column: 1 / -1; }
+    .chart-container { position: relative; height: 320px; }
+
+    /* Stat cards */
+    .stat-card { display: flex; flex-direction: column; gap: 8px; }
+    .stat-value { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; letter-spacing: -.5px; }
+    .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+    .stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* Prediction card */
+    .prediction-card { grid-column: 1; }
+    .prediction-value { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; color: var(--accent); }
+    .prediction-range { display: flex; gap: 12px; margin-top: 12px; }
+    .range-item { flex: 1; background: var(--surface2); border-radius: 10px; padding: 12px; text-align: center; }
+    .range-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .7px; }
+    .range-value { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; margin-top: 4px; }
+    .trend-badge { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; padding: 6px 12px; border-radius: 99px; background: var(--surface2); font-size: 12px; font-weight: 600; }
+    .trend-up { color: var(--success); }
+    .trend-down { color: var(--danger); }
+    .trend-stable { color: var(--muted); }
+
+    /* Anomalies card */
+    .anomalies-card { grid-column: 2; }
+    .anomalies-list { display: flex; flex-direction: column; gap: 12px; }
+    .anomaly-item {
+      background: var(--surface2); border-left: 3px solid var(--warn);
+      border-radius: 10px; padding: 12px 14px; font-size: 13px;
+    }
+    .anomaly-item.high { border-left-color: var(--danger); }
+    .anomaly-item.moderate { border-left-color: var(--warn); }
+    .anomaly-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .anomaly-desc { font-weight: 500; }
+    .anomaly-amount { font-family: 'Syne', sans-serif; font-weight: 700; }
+    .anomaly-detail { color: var(--muted); font-size: 11px; margin-top: 4px; }
+
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 48px 24px; text-align: center;
+    }
+    .empty-icon { width: 60px; height: 60px; border-radius: 16px; background: var(--surface2); border: 1px dashed var(--border); display: grid; place-items: center; font-size: 24px; margin-bottom: 16px; }
+    .empty-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .empty-text { color: var(--muted); font-size: 13px; }
+
+    .loading { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--muted); font-size: 13px; }
+    .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .btn {
+      padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+      transition: all .2s; display: flex; align-items: center; gap: 8px;
+    }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:hover { background: #d4ff70; transform: translateY(-1px); }
+
+    .confidence { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 99px; background: var(--surface2); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">T</div>
+      <span class="brand-name">Trackr</span>
+    </div>
+    <nav class="nav">
+      <a href="index.html" class="nav-item"><span class="icon">⊞</span> Home</a>
+      <a href="expenses.html" class="nav-item"><span class="icon">↕</span> Expenses</a>
+      <a href="reports.html" class="nav-item active"><span class="icon">◎</span> Reports</a>
+      <a href="#" class="nav-item"><span class="icon">⬡</span> Bank</a>
+      <a href="#" class="nav-item"><span class="icon">◈</span> Budget</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="month-label">Current period</div>
+      <div class="month-value" id="currentMonth"></div>
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <select id="monthSelect"></select>
+        <select id="yearSelect"></select>
+      </div>
+    </div>
+  </aside>
+  
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Analytics & Insights</h1>
+        <p class="page-subtitle" id="pageSubtitle">Loading…</p>
+      </div>
+    </div>
+    <div style="display:flex; gap:10px; margin-bottom:10px;">
+      <select id="viewMode">
+        <option value="monthly">Month-wise</option>
+        <option value="category">Category-wise</option>
+      </select>
+    </div>
+    <!-- Trend Chart -->
+    <div class="card chart-card">
+      <div class="card-label">12-month spending trend</div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+    </div>
+    <!-- Category + Merchants -->
+    <div class="grid-2">
+    
+      <!-- Category Breakdown -->
+      <div class="card">
+        <div class="card-label">Spending by Category</div>
+        <div class="card-body" id="categoryBreakdown">
+          <div class="loading">
+            <div class="spinner"></div><span>Loading…</span>
+          </div>
+        </div>
+      </div>
+    
+      <!-- Top Merchants -->
+      <div class="card">
+        <div class="card-label">Top Merchants</div>
+        <div class="card-body" id="topMerchants">
+          <div class="loading">
+            <div class="spinner"></div><span>Loading…</span>
+          </div>
+        </div>
+      </div>
+    
+    </div>
+    
+    <!-- Recent Expenses -->
+    <div class="card">
+      <div class="card-label">Recent Expenses</div>
+      <div class="card-body" id="recentExpenses">
+        <div class="loading">
+          <div class="spinner"></div><span>Loading…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prediction & Anomalies Row -->
+    <div class="grid-2">
+      <!-- Prediction Card -->
+      <div class="card prediction-card">
+        <div class="card-label">Next Month Forecast</div>
+        <div class="card-body">
+          <div id="predictionContent">
+            <div class="loading">
+              <div class="spinner"></div>
+              <span>Computing prediction…</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Anomalies Card -->
+      <div class="card anomalies-card">
+        <div class="card-label">Unusual Expenses</div>
+        <div class="card-body">
+          <div id="anomaliesContent">
+            <div class="loading">
+              <div class="spinner"></div>
+              <span>Analyzing patterns…</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-label">This Month</div>
+        <div class="stat-card">
+          <div class="stat-value" id="thisMonth">—</div>
+          <div class="stat-label">Total Spending</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Last Month</div>
+        <div class="stat-card">
+          <div class="stat-value" id="lastMonth">—</div>
+          <div class="stat-label">Total Spending</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">12-Month Average</div>
+        <div class="stat-card">
+          <div class="stat-value" id="avgMonth">—</div>
+          <div class="stat-label">Average Spending</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  const BASE_URL = '';
+  const now = new Date();
+  document.getElementById('currentMonth').textContent = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+  document.getElementById('pageSubtitle').textContent = `Powered by ML — ${now.toLocaleString('default', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+
+  let trendChart = null;
+  const chartColors = {
+    expenses: 'rgba(200, 251, 94, 1)',
+    expensesBg: 'rgba(200, 251, 94, 0.1)',
+    predict: 'rgba(124, 109, 250, 1)',
+    predictBg: 'rgba(124, 109, 250, 0.1)'
+  };
+
+  function initDateSelectors() {
+      const monthSelect = document.getElementById('monthSelect');
+      const yearSelect = document.getElementById('yearSelect');
+
+      const months = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+      ];
+
+      months.forEach((m, i) => {
+        monthSelect.innerHTML += `<option value="${i + 1}">${m}</option>`;
+      });
+
+      const currentYear = new Date().getFullYear();
+      for (let y = currentYear; y >= currentYear - 5; y--) {
+        yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+      }
+
+      // default current
+      const now = new Date();
+      monthSelect.value = now.getMonth() + 1;
+      yearSelect.value = now.getFullYear();
+    }
+  
+  // ── Load trend data ────────────────────────────────────────────────────
+  async function loadTrendData() {
+      try {
+        const m = document.getElementById('monthSelect').value;
+        const y = document.getElementById('yearSelect').value;
+        const mode = document.getElementById('viewMode').value; // 🔥 NEW
+
+        const res = await fetch(`${BASE_URL}/reports/trend?month=${m}&year=${y}&mode=${mode}`);
+        if (!res.ok) throw new Error('Failed to fetch trend');
+
+        const result = await res.json();
+        console.log("TREND DATA:", result);
+
+        const labels = result.data.map(d => d.label);
+        const values = result.data.map(d => d.value);
+
+        drawTrendChart(mode, labels, values); // 🔥 pass mode
+
+        // OPTIONAL: only update stats if monthly
+        if (mode === 'monthly' && result.trend) {
+          document.getElementById('thisMonth').textContent = `₹${result.trend.this_month}`;
+          document.getElementById('lastMonth').textContent = `₹${result.trend.last_month}`;
+          document.getElementById('avgMonth').textContent = `₹${result.trend.average_monthly}`;
+        }
+
+      } catch (e) {
+        console.error('Error loading trend:', e);
+        document.getElementById('pageSubtitle').textContent = 'Could not load trend data';
+      }
+    }
+
+  function drawTrendChart(mode, labels, values) {
+      const ctx = document.getElementById('trendChart').getContext('2d');
+
+      if (trendChart) trendChart.destroy();
+
+      if (mode === 'monthly') {
+        // ✅ SMOOTH LINE GRAPH
+        trendChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Monthly Spending',
+              data: values,
+              borderColor: chartColors.expenses,
+              backgroundColor: chartColors.expensesBg,
+              tension: 0.4,
+              fill: true,
+              pointRadius: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false
+          }
+        });
+      }
+
+      else if (mode === 'category') {
+        // ✅ SMOOTH BAR GRAPH
+        trendChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Category Spending',
+              data: values,
+              backgroundColor: chartColors.expenses,
+              borderRadius: 12,   // 🔥 smooth bars
+              borderSkipped: false
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false
+          }
+        });
+      }
+    }
+
+  // ── Load prediction ────────────────────────────────────────────────────
+    async function loadPrediction() {
+      try {
+        const res = await fetch(`${BASE_URL}/reports/prediction${getSelectedParams()}&months_ahead=1`);
+        if (!res.ok) throw new Error('Prediction failed');
+        const data = await res.json();
+
+        const container = document.getElementById('predictionContent');
+        if (!data.success) {
+          container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">⚠</div>
+            <div class="empty-title">Insufficient Data</div>
+            <div class="empty-text">${data.error || 'Need more expenses to predict.'}</div>
+          </div>
+        `;
+          return;
+        }
+
+        const confPercent = Math.round(data.confidence * 100);
+        const trendIcon = data.trend === 'increasing' ? '↑' : (data.trend === 'decreasing' ? '↓' : '→');
+
+        container.innerHTML = `
+        <div>
+          <div class="prediction-value">₹${data.predicted_amount.toLocaleString('en-IN')}</div>
+          <div class="stat-label">Predicted next month</div>
+          <div class="prediction-range">
+            <div class="range-item">
+              <div class="range-label">Low</div>
+              <div class="range-value">₹${data.prediction_range.low.toLocaleString('en-IN')}</div>
+            </div>
+            <div class="range-item">
+              <div class="range-label">High</div>
+              <div class="range-value">₹${data.prediction_range.high.toLocaleString('en-IN')}</div>
+            </div>
+          </div>
+          <span class="confidence">${confPercent}% confidence</span>
+          <div class="trend-badge trend-${data.trend}">
+            <span>${trendIcon}</span>
+            <span>${data.trend.charAt(0).toUpperCase() + data.trend.slice(1)} trend</span>
+          </div>
+          <div class="stat-sub" style="margin-top:16px">Based on ${data.based_on_months} months of data</div>
+        </div>
+      `;
+      } catch (e) {
+        console.error('Error loading prediction:', e);
+        document.getElementById('predictionContent').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">⚡</div>
+          <div class="empty-title">Prediction Unavailable</div>
+          <div class="empty-text">scikit-learn may not be installed</div>
+        </div>
+      `;
+      }
+    }
+
+    // ── Load anomalies ────────────────────────────────────────────────────
+    async function loadAnomalies() {
+      try {
+        const res = await fetch(`${BASE_URL}/reports/anomalies${getSelectedParams()}&threshold=2.5`);
+        if (!res.ok) throw new Error('Anomaly detection failed');
+        const data = await res.json();
+
+        const container = document.getElementById('anomaliesContent');
+        if (!data.success) {
+          container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">ℹ</div>
+            <div class="empty-title">No Data</div>
+            <div class="empty-text">${data.error || 'Insufficient data to analyze.'}</div>
+          </div>
+        `;
+          return;
+        }
+
+        if (data.anomalies.length === 0) {
+          container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">✓</div>
+            <div class="empty-title">All Clear</div>
+            <div class="empty-text">No unusual expenses detected.<br><small>Analyzed ${data.total_analyzed} expenses</small></div>
+          </div>
+        `;
+          return;
+        }
+
+        const html = data.anomalies.map(anom => `
+        <div class="anomaly-item ${anom.severity}">
+          <div class="anomaly-header">
+            <span class="anomaly-desc">${anom.description}</span>
+            <span class="anomaly-amount">₹${anom.amount.toLocaleString('en-IN')}</span>
+          </div>
+          <div class="anomaly-detail">
+            📅 ${anom.date} • ${anom.category} • Z-score: ${anom.z_score}
+          </div>
+        </div>
+      `).join('');
+
+        container.innerHTML = `
+        <div class="anomalies-list">
+          ${html}
+        </div>
+        <div class="stat-sub" style="margin-top:16px">
+          Found ${data.anomalies.length} anomal${data.anomalies.length === 1 ? 'y' : 'ies'} (${data.anomaly_percentage}%)
+        </div>
+      `;
+      } catch (e) {
+        console.error('Error loading anomalies:', e);
+        document.getElementById('anomaliesContent').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">⚠</div>
+          <div class="empty-title">Analysis Failed</div>
+          <div class="empty-text">Could not analyze expenses</div>
+        </div>
+      `;
+      }
+    }
+
+    function getSelectedParams() {
+        const m = document.getElementById('monthSelect').value;
+        const y = document.getElementById('yearSelect').value;
+        const mode = document.getElementById('viewMode').value;    
+
+        return `?month=${m}&year=${y}&mode=${mode}`;
+    }
+
+  // ── Load dashboard details ─────────────────────────────────────────
+    async function loadDashboardDetails() {
+      try {
+        const res = await fetch(`${BASE_URL}/reports/dashboard${getSelectedParams()}`)
+        if (!res.ok) throw new Error('Dashboard failed');
+
+        const data = await res.json();
+
+        renderCategories(data.category_breakdown);
+        renderMerchants(data.top_merchants);
+        renderRecent(data.recent_expenses);
+        if (data.trend_stats) {
+          document.getElementById('thisMonth').textContent =
+            `₹${data.trend_stats.this_month.toLocaleString('en-IN')}`;
+
+          document.getElementById('lastMonth').textContent =
+            `₹${data.trend_stats.last_month.toLocaleString('en-IN')}`;
+
+          document.getElementById('avgMonth').textContent =
+            `₹${data.trend_stats.average_monthly.toLocaleString('en-IN')}`;
+        }
+      } catch (e) {
+        console.error('Dashboard load error:', e);
+      }
+    }
+    function reloadReports() {
+        loadTrendData();
+        loadPrediction();
+        loadAnomalies();
+        loadDashboardDetails();
+      }
+
+    // ── Render Category Breakdown ──────────────────────────────────────
+    function renderCategories(categories) {
+      const el = document.getElementById('categoryBreakdown');
+
+      if (!categories || categories.length === 0) {
+        el.innerHTML = `<div class="empty-text">No category data</div>`;
+        return;
+      }
+
+      el.innerHTML = categories.map(c => `
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span>${c.icon || ''} ${c.name}</span>
+      <strong>₹${c.total.toLocaleString('en-IN')}</strong>
+    </div>
+  `).join('');
+    }
+
+    // ── Render Top Merchants ───────────────────────────────────────────
+    function renderMerchants(merchants) {
+      const el = document.getElementById('topMerchants');
+
+      if (!merchants || merchants.length === 0) {
+        el.innerHTML = `<div class="empty-text">No merchants found</div>`;
+        return;
+      }
+
+      el.innerHTML = merchants.map(m => `
+    <div style="display:flex;justify-content:space-between">
+      <span>${m.merchant}</span>
+      <strong>₹${m.total.toLocaleString('en-IN')}</strong>
+    </div>
+  `).join('');
+    }
+
+    // ── Render Recent Expenses ─────────────────────────────────────────
+    function renderRecent(recent) {
+      const el = document.getElementById('recentExpenses');
+
+      if (!recent || recent.length === 0) {
+        el.innerHTML = `<div class="empty-text">No recent expenses</div>`;
+        return;
+      }
+
+      el.innerHTML = recent.map(r => `
+    <div style="display:flex;justify-content:space-between">
+      <div>
+        <div style="font-weight:500">${r.description}</div>
+        <div style="font-size:12px;color:#7c7c90">${r.expense_date}</div>
+      </div>
+      <strong>₹${r.amount.toLocaleString('en-IN')}</strong>
+    </div>
+  `).join('');
+    }
+
+  // ── Init ───────────────────────────────────────────────────────────────
+  window.addEventListener('load', () => {
+
+    initDateSelectors();
+
+    document.getElementById('monthSelect').addEventListener('change', reloadReports);
+    document.getElementById('yearSelect').addEventListener('change', reloadReports);
+    document.getElementById('viewMode').addEventListener('change', reloadReports);
+
+    loadTrendData();
+    loadPrediction();
+    loadAnomalies();
+    loadDashboardDetails();
+  });
+
+  // Reload when user returns to tab
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      loadTrendData();
+      loadPrediction();
+      loadAnomalies();
+      loadDashboardDetails();
+    }
+  });
+</script>
+</body>
+</html>
